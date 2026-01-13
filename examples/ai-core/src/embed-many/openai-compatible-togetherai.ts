@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
+import { run } from '../lib/run';
 
-async function main() {
+run(async () => {
   const togetherai = createOpenAICompatible({
     baseURL: 'https://api.together.xyz/v1',
     name: 'togetherai',
@@ -11,7 +11,7 @@ async function main() {
     },
   });
   const model = togetherai.embeddingModel('BAAI/bge-large-en-v1.5');
-  const { embeddings, usage } = await embedMany({
+  const { embeddings, usage, warnings } = await embedMany({
     model,
     values: [
       'sunny day at the beach',
@@ -22,6 +22,5 @@ async function main() {
 
   console.log(embeddings);
   console.log(usage);
-}
-
-main().catch(console.error);
+  console.log(warnings);
+});
