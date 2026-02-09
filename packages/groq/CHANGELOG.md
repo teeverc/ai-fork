@@ -1,5 +1,123 @@
 # @ai-sdk/groq
 
+## 3.0.22
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+  - @ai-sdk/provider-utils@4.0.14
+
+## 3.0.21
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+  - @ai-sdk/provider-utils@4.0.13
+
+## 3.0.20
+
+### Patch Changes
+
+- Updated dependencies [96936e5]
+  - @ai-sdk/provider-utils@4.0.12
+
+## 3.0.19
+
+### Patch Changes
+
+- Updated dependencies [2810850]
+  - @ai-sdk/provider-utils@4.0.11
+  - @ai-sdk/provider@3.0.6
+
+## 3.0.18
+
+### Patch Changes
+
+- 1524271: chore: add skill information to README files
+
+## 3.0.17
+
+### Patch Changes
+
+- 3988c08: docs: fix incorrect and outdated provider docs
+
+## 3.0.16
+
+### Patch Changes
+
+- Updated dependencies [462ad00]
+  - @ai-sdk/provider-utils@4.0.10
+
+## 3.0.15
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+  - @ai-sdk/provider-utils@4.0.9
+
+## 3.0.14
+
+### Patch Changes
+
+- 2b8369d: chore: add docs to package dist
+
+## 3.0.13
+
+### Patch Changes
+
+- 8dc54db: chore: add src folders to package bundle
+
+## 3.0.12
+
+### Patch Changes
+
+- 25f5da3: feat(groq): expose reasoningTokens in usage data
+
+## 3.0.11
+
+### Patch Changes
+
+- 7c98577: fix timestamp_granularities handling in groq transcription
+
+## 3.0.10
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+  - @ai-sdk/provider-utils@4.0.8
+
+## 3.0.9
+
+### Patch Changes
+
+- Updated dependencies [46f46e4]
+  - @ai-sdk/provider-utils@4.0.7
+
+## 3.0.8
+
+### Patch Changes
+
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider-utils@4.0.6
+  - @ai-sdk/provider@3.0.3
+
+## 3.0.7
+
+### Patch Changes
+
+- bc02a3c: feat(groq,compat): add strictJsonSchema for providers
+
+## 3.0.6
+
+### Patch Changes
+
+- 78fcb18: fix(compat,groq): send reasoning-end before text-start in streaming
+
 ## 3.0.5
 
 ### Patch Changes

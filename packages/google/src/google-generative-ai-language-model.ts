@@ -263,7 +263,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
           toolName: 'code_execution',
           result: {
             outcome: part.codeExecutionResult.outcome,
-            output: part.codeExecutionResult.output,
+            output: part.codeExecutionResult.output ?? '',
           },
         });
         // Clear the ID after use to avoid accidental reuse.
@@ -476,7 +476,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
                       toolName: 'code_execution',
                       result: {
                         outcome: part.codeExecutionResult.outcome,
-                        output: part.codeExecutionResult.output,
+                        output: part.codeExecutionResult.output ?? '',
                       },
                     });
                     // Clear the ID after use.
@@ -840,11 +840,13 @@ export const getGroundingMetadataSchema = () =>
     groundingSupports: z
       .array(
         z.object({
-          segment: z.object({
-            startIndex: z.number().nullish(),
-            endIndex: z.number().nullish(),
-            text: z.string().nullish(),
-          }),
+          segment: z
+            .object({
+              startIndex: z.number().nullish(),
+              endIndex: z.number().nullish(),
+              text: z.string().nullish(),
+            })
+            .nullish(),
           segment_text: z.string().nullish(),
           groundingChunkIndices: z.array(z.number()).nullish(),
           supportChunkIndices: z.array(z.number()).nullish(),
@@ -893,7 +895,7 @@ const getContentSchema = () =>
             codeExecutionResult: z
               .object({
                 outcome: z.string(),
-                output: z.string(),
+                output: z.string().nullish(),
               })
               .nullish(),
             text: z.string().nullish(),

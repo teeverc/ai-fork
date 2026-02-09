@@ -1,5 +1,68 @@
 # @ai-sdk/provider-utils
 
+## 4.0.14
+
+### Patch Changes
+
+- Updated dependencies [7168375]
+  - @ai-sdk/provider@3.0.8
+
+## 4.0.13
+
+### Patch Changes
+
+- Updated dependencies [53f6731]
+  - @ai-sdk/provider@3.0.7
+
+## 4.0.12
+
+### Patch Changes
+
+- 96936e5: fix(provider-utils): export only types from standard-schema package
+
+## 4.0.11
+
+### Patch Changes
+
+- 2810850: fix(ai): improve type validation error messages with field paths and entity identifiers
+- Updated dependencies [2810850]
+  - @ai-sdk/provider@3.0.6
+
+## 4.0.10
+
+### Patch Changes
+
+- 462ad00: fix(provider-utils): recognize bun fetch errors as retryable
+
+## 4.0.9
+
+### Patch Changes
+
+- 4de5a1d: chore: excluded tests from src folder in npm package
+- Updated dependencies [4de5a1d]
+  - @ai-sdk/provider@3.0.5
+
+## 4.0.8
+
+### Patch Changes
+
+- Updated dependencies [5c090e7]
+  - @ai-sdk/provider@3.0.4
+
+## 4.0.7
+
+### Patch Changes
+
+- 46f46e4: fix(provider-utils): improve tool type inference when using `inputExamples` with Zod schemas that use `.optional().default()` or `.refine()`.
+
+## 4.0.6
+
+### Patch Changes
+
+- 1b11dcb: chore(ai): include sources in npm package
+- Updated dependencies [1b11dcb]
+  - @ai-sdk/provider@3.0.3
+
 ## 4.0.5
 
 ### Patch Changes

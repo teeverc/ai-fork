@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { LanguageModelV3Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -434,6 +434,25 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       prompt: TEST_PROMPT,
       providerOptions: {
+        openaiCompatible: {
+          user: 'test-user-id',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'grok-beta',
+      messages: [{ role: 'user', content: 'Hello' }],
+      user: 'test-user-id',
+    });
+  });
+
+  it('should pass settings with deprecated openai-compatible key and emit warning', async () => {
+    prepareJsonResponse();
+
+    const result = await provider('grok-beta').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
         'openai-compatible': {
           user: 'test-user-id',
         },
@@ -444,6 +463,11 @@ describe('doGenerate', () => {
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
+    });
+
+    expect(result.warnings).toContainEqual({
+      type: 'other',
+      message: `The 'openai-compatible' key in providerOptions is deprecated. Use 'openaiCompatible' instead.`,
     });
   });
 
@@ -884,6 +908,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -1027,6 +1052,7 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
             name: 'response',
             schema: {
               type: 'object',
@@ -1072,6 +1098,59 @@ describe('doGenerate', () => {
         response_format: {
           type: 'json_schema',
           json_schema: {
+            strict: true,
+            name: 'test-name',
+            description: 'test description',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+      });
+    });
+
+    it('should send strict: false when strictJsonSchema is explicitly disabled', async () => {
+      prepareJsonResponse({ content: '{"value":"Spark"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
+
+      await model.doGenerate({
+        responseFormat: {
+          type: 'json',
+          name: 'test-name',
+          description: 'test description',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          'test-provider': {
+            strictJsonSchema: false,
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-4o-2024-08-06',
+        messages: [{ role: 'user', content: 'Hello' }],
+        response_format: {
+          type: 'json_schema',
+          json_schema: {
+            strict: false,
             name: 'test-name',
             description: 'test description',
             schema: {
@@ -1250,6 +1329,54 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should preserve extra usage fields from provider-specific responses', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-beta',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 18,
+            completion_tokens: 439,
+            total_tokens: 457,
+            // Provider-specific extra fields (e.g., from Groq)
+            queue_time: 0.061348671,
+            prompt_time: 0.000211569,
+            completion_time: 0.798181818,
+            total_time: 0.798393387,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_time": 0.798181818,
+          "completion_tokens": 439,
+          "prompt_time": 0.000211569,
+          "prompt_tokens": 18,
+          "queue_time": 0.061348671,
+          "total_time": 0.798393387,
+          "total_tokens": 457,
+        }
+      `);
+    });
   });
 });
 
@@ -1379,8 +1506,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -1440,6 +1571,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1452,10 +1587,6 @@ describe('doStream', () => {
           "delta": " my response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1543,6 +1674,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1555,10 +1690,6 @@ describe('doStream', () => {
           "delta": " correct",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1637,6 +1768,10 @@ describe('doStream', () => {
           "type": "reasoning-delta",
         },
         {
+          "id": "reasoning-0",
+          "type": "reasoning-end",
+        },
+        {
           "id": "txt-0",
           "type": "text-start",
         },
@@ -1644,10 +1779,6 @@ describe('doStream', () => {
           "delta": "Final response",
           "id": "txt-0",
           "type": "text-delta",
-        },
-        {
-          "id": "reasoning-0",
-          "type": "reasoning-end",
         },
         {
           "id": "txt-0",
@@ -1823,8 +1954,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2115,8 +2250,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2358,8 +2497,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -2450,8 +2593,12 @@ describe('doStream', () => {
               "total": 439,
             },
             "raw": {
+              "completion_time": 0.798181818,
               "completion_tokens": 439,
+              "prompt_time": 0.000211569,
               "prompt_tokens": 18,
+              "queue_time": 0.061348671,
+              "total_time": 0.798393387,
               "total_tokens": 457,
             },
           },
@@ -3077,5 +3224,137 @@ describe('raw chunks', () => {
         },
       ]
     `);
+  });
+});
+
+describe('transformRequestBody', () => {
+  function prepareTransformJsonResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-test',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-beta',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello!',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 34,
+          completion_tokens: 30,
+        },
+      },
+    };
+  }
+
+  function prepareTransformStreamResponse() {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1711115037,"model":"grok-beta","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":2,"total_tokens":6}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+  }
+
+  it('should transform request body in doGenerate when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should transform request body in doStream when transformRequestBody is provided', async () => {
+    const transformFn = vi.fn((body: Record<string, any>) => ({
+      ...body,
+      custom_field: 'added-by-transform',
+    }));
+
+    prepareTransformStreamResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+      transformRequestBody: transformFn,
+    });
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    // Consume the stream
+    await convertReadableStreamToArray(stream);
+
+    // Verify transform was called
+    expect(transformFn).toHaveBeenCalledOnce();
+    expect(transformFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'grok-beta',
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream: true,
+      }),
+    );
+
+    // Verify transformed body was sent
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      custom_field: 'added-by-transform',
+    });
+  });
+
+  it('should work without transformRequestBody', async () => {
+    prepareTransformJsonResponse();
+
+    const model = new OpenAICompatibleChatLanguageModel('grok-beta', {
+      provider: 'test-provider',
+      url: ({ path }) => `https://my.api.com/v1${path}`,
+      headers: () => ({}),
+    });
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      model: 'grok-beta',
+    });
+    expect(requestBody).not.toHaveProperty('custom_field');
   });
 });

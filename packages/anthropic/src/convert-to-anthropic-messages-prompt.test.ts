@@ -662,6 +662,82 @@ describe('tool messages', () => {
       }
     `);
   });
+
+  it('should handle tool result with custom tool-reference content for custom tool search', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'searchTools',
+              toolCallId: 'search-1',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_weather',
+                      },
+                    },
+                  },
+                  {
+                    type: 'custom',
+                    providerOptions: {
+                      anthropic: {
+                        type: 'tool-reference',
+                        toolName: 'get_forecast',
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "content": [
+                    {
+                      "tool_name": "get_weather",
+                      "type": "tool_reference",
+                    },
+                    {
+                      "tool_name": "get_forecast",
+                      "type": "tool_reference",
+                    },
+                  ],
+                  "is_error": undefined,
+                  "tool_use_id": "search-1",
+                  "type": "tool_result",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+  });
+
   it('should handle tool result with url-based PDF content', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -1227,7 +1303,7 @@ describe('assistant messages', () => {
           content: [
             {
               input: {
-                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
               },
               providerExecuted: true,
               toolCallId: 'srvtoolu_011cNtbtzFARKPcAcp7w4nh9',
@@ -1239,7 +1315,7 @@ describe('assistant messages', () => {
                 type: 'json',
                 value: {
                   type: 'web_fetch_result',
-                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf',
+                  url: 'https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf',
                   retrievedAt: '2025-01-01T00:00:00.000Z',
                   content: {
                     type: 'document',
@@ -1276,7 +1352,7 @@ describe('assistant messages', () => {
                   "cache_control": undefined,
                   "id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "input": {
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "name": "web_fetch",
                   "type": "server_tool_use",
@@ -1298,7 +1374,7 @@ describe('assistant messages', () => {
                     },
                     "retrieved_at": "2025-01-01T00:00:00.000Z",
                     "type": "web_fetch_result",
-                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf",
+                    "url": "https://raw.githubusercontent.com/vercel/ai/blob/main/examples/ai-functions/data/ai.pdf",
                   },
                   "tool_use_id": "srvtoolu_011cNtbtzFARKPcAcp7w4nh9",
                   "type": "web_fetch_tool_result",
@@ -1381,6 +1457,125 @@ describe('assistant messages', () => {
           ],
           "system": undefined,
         },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_fetch tool call with error result as object', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://www.fotball.no/fotballdata/turnering/hjem/?fiksId=193156',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_01JteKo9VRHDKZ1rdMXywnwD',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: {
+                  type: 'web_fetch_tool_result_error',
+                  errorCode: 'url_not_allowed',
+                },
+              },
+              toolCallId: 'srvtoolu_01JteKo9VRHDKZ1rdMXywnwD',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "id": "srvtoolu_01JteKo9VRHDKZ1rdMXywnwD",
+                  "input": {
+                    "url": "https://www.fotball.no/fotballdata/turnering/hjem/?fiksId=193156",
+                  },
+                  "name": "web_fetch",
+                  "type": "server_tool_use",
+                },
+                {
+                  "cache_control": undefined,
+                  "content": {
+                    "error_code": "url_not_allowed",
+                    "type": "web_fetch_tool_result_error",
+                  },
+                  "tool_use_id": "srvtoolu_01JteKo9VRHDKZ1rdMXywnwD",
+                  "type": "web_fetch_tool_result",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should convert anthropic web_fetch tool call with error result as malformed string', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              input: {
+                url: 'https://example.com',
+              },
+              providerExecuted: true,
+              toolCallId: 'srvtoolu_test123',
+              toolName: 'web_fetch',
+              type: 'tool-call',
+            },
+            {
+              output: {
+                type: 'error-json',
+                value: 'not valid json at all',
+              },
+              toolCallId: 'srvtoolu_test123',
+              toolName: 'web_fetch',
+              type: 'tool-result',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content[1]).toMatchInlineSnapshot(`
+      {
+        "cache_control": undefined,
+        "content": {
+          "error_code": "unknown",
+          "type": "web_fetch_tool_result_error",
+        },
+        "tool_use_id": "srvtoolu_test123",
+        "type": "web_fetch_tool_result",
       }
     `);
     expect(warnings).toMatchInlineSnapshot(`[]`);
